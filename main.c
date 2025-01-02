@@ -15,7 +15,9 @@ void on_compress_button_clicked(GtkWidget *widget, gpointer data);
 void on_decompress_button_clicked(GtkWidget *widget, gpointer data);
 void on_file_chosen(GtkWidget *widget, gpointer data);
 void update_progress_bar(GtkProgressBar *progressBar, double fraction);
+void create_file_chooser_dialog(const char *title, GtkFileChooserAction action, GtkWidget **inputFile, GtkWidget **outputFile);
 
+// GTK Widgets
 GtkWidget *progressBar;
 GtkWidget *statusLabel;
 
@@ -59,35 +61,42 @@ int main(int argc, char *argv[]) {
 }
 
 void on_compress_button_clicked(GtkWidget *widget, gpointer data) {
-    GtkWidget *dialog = gtk_file_chooser_dialog_new("Select File to Compress", NULL,
-                                                    GTK_FILE_CHOOSER_ACTION_OPEN,
-                                                    "Cancel", GTK_RESPONSE_CANCEL,
-                                                    "Open", GTK_RESPONSE_ACCEPT,
-                                                    NULL);
-    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        char *inputFile = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        char *outputFile = "compressed_file.gz";  // Hardcoded for demo purposes
-        int level = Z_BEST_COMPRESSION;          // Default compression level
-
+    GtkWidget *inputFile, *outputFile;
+    create_file_chooser_dialog("Select File to Compress", GTK_FILE_CHOOSER_ACTION_OPEN, &inputFile, &outputFile);
+    if (inputFile && outputFile) {
+        int level = Z_BEST_COMPRESSION;  // Default compression level
         compressFileWithLevel(inputFile, outputFile, level);
-        g_free(inputFile);
     }
-    gtk_widget_destroy(dialog);
 }
 
 void on_decompress_button_clicked(GtkWidget *widget, gpointer data) {
-    GtkWidget *dialog = gtk_file_chooser_dialog_new("Select File to Decompress", NULL,
-                                                    GTK_FILE_CHOOSER_ACTION_OPEN,
+    GtkWidget *inputFile, *outputFile;
+    create_file_chooser_dialog("Select File to Decompress", GTK_FILE_CHOOSER_ACTION_OPEN, &inputFile, &outputFile);
+    if (inputFile && outputFile) {
+        decompressFile(inputFile, outputFile);
+    }
+}
+
+void create_file_chooser_dialog(const char *title, GtkFileChooserAction action, GtkWidget **inputFile, GtkWidget **outputFile) {
+    GtkWidget *dialog = gtk_file_chooser_dialog_new(title, NULL,
+                                                    action,
                                                     "Cancel", GTK_RESPONSE_CANCEL,
                                                     "Open", GTK_RESPONSE_ACCEPT,
                                                     NULL);
-    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        char *inputFile = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        char *outputFile = "decompressed_file.txt";  // Hardcoded for demo purposes
 
-        decompressFile(inputFile, outputFile);
-        g_free(inputFile);
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        *inputFile = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+
+        // Ask for output file location
+        *outputFile = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+        if (*outputFile == NULL) {
+            gtk_label_set_text(GTK_LABEL(statusLabel), "No output file chosen.");
+            g_free(*inputFile);
+            gtk_widget_destroy(dialog);
+            return;
+        }
     }
+
     gtk_widget_destroy(dialog);
 }
 
@@ -227,4 +236,5 @@ long getFileSize(const char *filename) {
 
 void update_progress_bar(GtkProgressBar *progressBar, double fraction) {
     gtk_progress_bar_set_fraction(progressBar, fraction);
+    gtk_progress_bar_pulse(progressBar);
 }
