@@ -29,6 +29,13 @@ void decompress_folder(const char *archiveFile, const char *outputFolder);
 void *thread_compress(void *arg);
 void *thread_decompress(void *arg);
 
+// Data structure for threading
+typedef struct {
+    char inputFile[256];
+    char outputFile[256];
+    int level;
+} FileTask;
+
 
 // GTK Widgets
 GtkWidget *progressBar;
