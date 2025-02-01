@@ -38,8 +38,15 @@ typedef struct {
 
 
 // GTK Widgets
-GtkWidget *progressBar;
-GtkWidget *statusLabel;
+GtkWidget *progress_bar;
+GtkWidget *status_label;
+
+// Structure for thread arguments
+typedef struct {
+    char input[256];
+    char output[256];
+    char format[10];
+} ThreadArgs;
 
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
