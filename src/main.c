@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <gtk/gtk.h>
+
 #define CHUNK 16384
 
 // Function prototypes
@@ -27,7 +28,6 @@ void compress_folder(const char *folderPath, const char *outputFile);
 void decompress_folder(const char *archiveFile, const char *outputFolder);
 void *thread_compress(void *arg);
 void *thread_decompress(void *arg);
-void create_makefile();
 
 
 // GTK Widgets
@@ -236,6 +236,63 @@ void decompressFile(const char *inputFile, const char *outputFile) {
 
     gtk_label_set_text(GTK_LABEL(statusLabel), "Decompression complete!");
 }
+
+void *thread_compress(void *arg) {
+    FileTask *task = (FileTask *)arg;
+    compress_file_gz(task->inputFile, task->outputFile, task->level);
+    return NULL;
+}
+
+void *thread_decompress(void *arg) {
+    FileTask *task = (FileTask *)arg;
+    decompress_file(task->inputFile, task->outputFile);
+    return NULL;
+}
+
+void compress_file_gz(const char *inputFile, const char *outputFile, int level) {
+    FILE *in = fopen(inputFile, "rb");
+    if (!in) {
+        perror("Error opening input file");
+        return;
+    }
+    
+    gzFile out = gzopen(outputFile, "wb");
+    if (!out) {
+        perror("Error opening output file");
+        fclose(in);
+        return;
+    }
+    
+    gzsetparams(out, level, Z_DEFAULT_STRATEGY);
+    
+    char buffer[CHUNK];
+    int bytesRead;
+    while ((bytesRead = fread(buffer, 1, CHUNK, in)) > 0) {
+        gzwrite(out, buffer, bytesRead);
+    }
+    
+    fclose(in);
+    gzclose(out);
+}
+
+void compress_folder(const char *folderPath, const char *outputFile) {
+    DIR *dir = opendir(folderPath);
+    if (!dir) {
+        perror("Error opening directory");
+        return;
+    }
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_REG) {
+            char inputFilePath[512], outputFilePath[512];
+            snprintf(inputFilePath, sizeof(inputFilePath), "%s/%s", folderPath, entry->d_name);
+            snprintf(outputFilePath, sizeof(outputFilePath), "%s.gz", inputFilePath);
+            compress_file_gz(inputFilePath, outputFilePath, Z_BEST_COMPRESSION);
+        }
+    }
+    closedir(dir);
+}
+
 
 long getFileSize(const char *filename) {
     struct stat st;
