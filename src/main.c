@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gtk/gtk.h>
+#include <pthread.h>
 #include <zlib.h>
+#include <bzlib.h>
+#include <zip.h>
 #include <sys/stat.h>
-
+#include <dirent.h>
+#include <gtk/gtk.h>
 #define CHUNK 16384
 
 // Function prototypes
@@ -16,6 +19,16 @@ void on_decompress_button_clicked(GtkWidget *widget, gpointer data);
 void on_file_chosen(GtkWidget *widget, gpointer data);
 void update_progress_bar(GtkProgressBar *progressBar, double fraction);
 void create_file_chooser_dialog(const char *title, GtkFileChooserAction action, GtkWidget **inputFile, GtkWidget **outputFile);
+
+// Added later
+void compress_file_gz(const char *inputFile, const char *outputFile, int level);
+void compress_file_bz2(const char *inputFile, const char *outputFile, int level);
+void compress_folder(const char *folderPath, const char *outputFile);
+void decompress_folder(const char *archiveFile, const char *outputFolder);
+void *thread_compress(void *arg);
+void *thread_decompress(void *arg);
+void create_makefile();
+
 
 // GTK Widgets
 GtkWidget *progressBar;
